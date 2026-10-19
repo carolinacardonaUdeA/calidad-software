@@ -55,7 +55,7 @@ configurations {
 }
 
 dependencies {
-    acceptanceTestImplementation 'com.intuit.karate:karate-junit5:1.5.1'
+    acceptanceTestImplementation 'io.karatelabs:karate-junit5:1.5.1'
     acceptanceTestImplementation platform('org.junit:junit-bom:5.11.4')
     acceptanceTestImplementation 'org.junit.jupiter:junit-jupiter'
     acceptanceTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
