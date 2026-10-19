@@ -1,0 +1,22 @@
+# Archivos de build
+build/
+out/
+
+# IDEs
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Sistema
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc

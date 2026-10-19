@@ -1,0 +1,151 @@
+plugins {
+    id 'java'
+    id 'application'
+    id 'jacoco'
+    // Analisis estatico en SonarCloud (quality gate + quality profile): ver sonar/ y docs/
+    id 'org.sonarqube' version '7.0.0.6105'
+}
+
+group = 'com.udea.calidad'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.11.4')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+application {
+    mainClass = 'com.udea.calidad.calculadora.Main'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+// ---------------------------------------------------------------------------
+// Pruebas de aceptacion con Karate (carpeta pruebas-aceptacion/)
+//   java/       -> drivers (puente Karate <-> aplicacion) y runner JUnit 5
+//   resources/  -> karate-config.js y features/*.feature (Gherkin)
+// Ejecutar: ./gradlew acceptanceTest
+// Reporte:  build/karate-reports/karate-summary.html
+// ---------------------------------------------------------------------------
+sourceSets {
+    acceptanceTest {
+        java.srcDir 'pruebas-aceptacion/java'
+        resources.srcDir 'pruebas-aceptacion/resources'
+        compileClasspath += sourceSets.main.output
+        runtimeClasspath += sourceSets.main.output
+    }
+}
+
+configurations {
+    acceptanceTestImplementation.extendsFrom implementation
+    acceptanceTestRuntimeOnly.extendsFrom runtimeOnly
+}
+
+dependencies {
+    acceptanceTestImplementation 'com.intuit.karate:karate-junit5:1.5.1'
+    acceptanceTestImplementation platform('org.junit:junit-bom:5.11.4')
+    acceptanceTestImplementation 'org.junit.jupiter:junit-jupiter'
+    acceptanceTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.register('acceptanceTest', Test) {
+    description = 'Ejecuta las pruebas de aceptacion (Karate).'
+    group = 'verification'
+    testClassesDirs = sourceSets.acceptanceTest.output.classesDirs
+    classpath = sourceSets.acceptanceTest.runtimeClasspath
+    useJUnitPlatform()
+    shouldRunAfter test
+    outputs.upToDateWhen { false }     // las pruebas de aceptacion siempre se ejecutan
+    // permite: ./gradlew acceptanceTest -Dkarate.options="--tags @smoke"
+    if (System.getProperty('karate.options')) {
+        systemProperty 'karate.options', System.getProperty('karate.options')
+    }
+    finalizedBy jacocoTestReport       // la cobertura de Sonar suma unitarias + aceptacion
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
+check.dependsOn acceptanceTest
+
+test {
+    useJUnitPlatform()
+    finalizedBy jacocoTestReport
+    testLogging {
+        events 'passed', 'skipped', 'failed'
+        exceptionFormat = 'full'
+    }
+}
+
+// Main.java y CalculatorFrame.java son adaptadores de E/S (consola y Swing)
+// sin logica de negocio: se excluyen del calculo de cobertura, que se centra
+// en la logica testeable (practica estandar en QA).
+afterEvaluate {
+    [jacocoTestReport, jacocoTestCoverageVerification].each { jacocoTask ->
+        jacocoTask.classDirectories.setFrom(files(jacocoTask.classDirectories.files.collect {
+            fileTree(dir: it, exclude: ['**/Main*', '**/ui/CalculatorFrame*'])
+        }))
+    }
+}
+
+jacocoTestReport {
+    dependsOn test
+    mustRunAfter acceptanceTest
+    // Une la ejecucion de las pruebas unitarias (test.exec) y de aceptacion (acceptanceTest.exec)
+    executionData.setFrom(fileTree(dir: layout.buildDirectory.dir('jacoco').get().asFile, include: '*.exec'))
+    reports {
+        html.required = true
+        xml.required = true
+        csv.required = true
+    }
+}
+
+jacocoTestCoverageVerification {
+    violationRules {
+        rule {
+            limit {
+                minimum = 0.90
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// SonarCloud
+//   Variables de entorno:  SONAR_TOKEN (obligatoria), SONAR_ORGANIZATION, SONAR_PROJECT_KEY
+//   Ejecutar: ./gradlew clean test acceptanceTest jacocoTestReport sonar
+// ---------------------------------------------------------------------------
+sonar {
+    properties {
+        property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION') ?: 'REEMPLAZAR_ORGANIZACION'
+        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: 'REEMPLAZAR_ORGANIZACION_calculadora-calidad'
+        property 'sonar.projectName', 'calculadora-calidad'
+        property 'sonar.sources', 'src/main/java'
+        property 'sonar.tests', 'src/test/java,pruebas-aceptacion/java'
+        property 'sonar.sourceEncoding', 'UTF-8'
+        // Misma politica de cobertura que JaCoCo: adaptadores de E/S sin logica de negocio
+        property 'sonar.coverage.exclusions', '**/Main.java,**/ui/CalculatorFrame.java,pruebas-aceptacion/**'
+        property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
+        // El build falla si el Quality Gate no se cumple (util en CI)
+        property 'sonar.qualitygate.wait', 'true'
+    }
+}
+
+tasks.named('sonar') {
+    dependsOn tasks.named('jacocoTestReport')
+}
