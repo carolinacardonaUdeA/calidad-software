@@ -7,8 +7,11 @@ set -uo pipefail
 API="https://sonarcloud.io/api"
 GATE_NAME="Calculadora Quality Gate"
 PROFILE_NAME="Calculadora Java Profile"
-BASE_PROFILE="Sonar way"
 
+BASE_PROFILE="${BASE_PROFILE:-Sonar way comprehensive}"
+
+# ---- Definicion de metricas ------------------------------------------------
+# Quality Gate:  metrica | operador (GT = falla si es mayor, LT = falla si es menor) | umbral
 GATE_CONDITIONS=(
   "new_coverage|LT|80"                       # cobertura del codigo nuevo >= 80 %
   "coverage|LT|80"                           # cobertura total >= 80 %
@@ -24,8 +27,8 @@ GATE_CONDITIONS=(
 
 # Quality Profile: regla | severidad | parametros
 PROFILE_RULES=(
-  "java:S1541|MAJOR|Max=10"                  # complejidad ciclomatica por metodo <= 10
-  "java:S3776|CRITICAL|threshold=15"         # complejidad cognitiva por metodo  <= 15
+  "java:S1541|MAJOR|Threshold=10"            # complejidad ciclomatica por metodo <= 10 (unico parametro: Threshold)
+  "java:S3776|CRITICAL|Threshold=15"         # complejidad cognitiva por metodo  <= 15 (unico parametro: Threshold)
 )
 # -----------------------------------------------------------------------------
 
@@ -38,19 +41,25 @@ echo "== 1. Quality Gate: ${GATE_NAME}"
 resp=$(call POST qualitygates/create --data-urlencode "name=${GATE_NAME}" --data-urlencode "organization=${SONAR_ORGANIZATION}")
 echo "$resp" | jq -r 'if .errors then "   (aviso) " + (.errors[0].msg) else "   creado" end'
 
+# SonarCloud identifica el gate por su id numerico (gateId), no por nombre.
+GATE_ID=$(call GET qualitygates/list --get --data-urlencode "organization=${SONAR_ORGANIZATION}" \
+  | jq -r --arg n "$GATE_NAME" '.qualitygates[] | select(.name==$n) | .id' | head -n1)
+if [[ -z "$GATE_ID" || "$GATE_ID" == "null" ]]; then echo "   No se pudo obtener el id del gate"; exit 1; fi
+echo "   gateId=${GATE_ID}"
+
 for cond in "${GATE_CONDITIONS[@]}"; do
   cond="${cond%%#*}"; cond="$(echo "$cond" | xargs)"      # quita comentarios y espacios
   IFS='|' read -r metric op error <<<"$cond"
   resp=$(call POST qualitygates/create_condition \
-    --data-urlencode "gateName=${GATE_NAME}" --data-urlencode "organization=${SONAR_ORGANIZATION}" \
+    --data-urlencode "gateId=${GATE_ID}" --data-urlencode "organization=${SONAR_ORGANIZATION}" \
     --data-urlencode "metric=${metric}" --data-urlencode "op=${op}" --data-urlencode "error=${error}")
   echo "$resp" | jq -r --arg m "$metric" 'if .errors then "   [\($m)] " + .errors[0].msg else "   [\($m)] condicion creada" end'
 done
 
 echo "== 2. Asociar el Quality Gate al proyecto ${SONAR_PROJECT_KEY}"
 call POST qualitygates/select \
-  --data-urlencode "gateName=${GATE_NAME}" --data-urlencode "organization=${SONAR_ORGANIZATION}" \
-  --data-urlencode "projectKey=${SONAR_PROJECT_KEY}" | jq -r 'if .errors then "   " + .errors[0].msg else "   ok" end'
+  --data-urlencode "gateId=${GATE_ID}" --data-urlencode "organization=${SONAR_ORGANIZATION}" \
+  --data-urlencode "projectKey=${SONAR_PROJECT_KEY}" | jq -r 'if .errors then "   (aviso) " + .errors[0].msg + "  <- limite del plan" else "   ok" end'
 
 echo "== 3. Quality Profile: ${PROFILE_NAME} (copia de '${BASE_PROFILE}')"
 base_key=$(call GET qualityprofiles/search --get \
@@ -80,6 +89,7 @@ done
 echo "== 5. Asociar el Quality Profile al proyecto"
 call POST qualityprofiles/add_project \
   --data-urlencode "key=${profile_key}" --data-urlencode "project=${SONAR_PROJECT_KEY}" \
-  --data-urlencode "organization=${SONAR_ORGANIZATION}" | jq -r 'if .errors then "   " + .errors[0].msg else "   ok" end'
+  | jq -r 'if .errors then "   (aviso) " + .errors[0].msg + "  <- limite del plan" else "   ok" end'
+# (con "key" no se debe enviar "organization": la API lo rechaza)
 
 echo "Listo. Verifica en https://sonarcloud.io/project/quality_gate?id=${SONAR_PROJECT_KEY}"

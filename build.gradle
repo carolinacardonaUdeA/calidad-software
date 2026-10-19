@@ -132,8 +132,8 @@ jacocoTestCoverageVerification {
 sonar {
     properties {
         property 'sonar.host.url', 'https://sonarcloud.io'
-        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION') ?: 'REEMPLAZAR_ORGANIZACION'
-        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: 'REEMPLAZAR_ORGANIZACION_calculadora-calidad'
+        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION') ?: 'julian7965'
+        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: 'julian7965_calidad-software'
         property 'sonar.projectName', 'calculadora-calidad'
         property 'sonar.sources', 'src/main/java'
         property 'sonar.tests', 'src/test/java,pruebas-aceptacion/java'

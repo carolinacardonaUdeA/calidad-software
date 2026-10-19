@@ -1,3 +1,4 @@
+# Workflow de GitHub Actions. Para activarlo copialo a .github/workflows/sonarcloud.yml
 name: Calidad - pruebas + SonarCloud
 
 on:
@@ -27,6 +28,16 @@ jobs:
           SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
         run: ./gradlew clean test acceptanceTest jacocoTestReport sonar --info
+
+      # Respaldo del Quality Gate propio (el plan gratuito no deja asignarlo al proyecto):
+      # topes de complejidad total y cobertura leidos de SonarCloud + complejidad por metodo con lizard.
+      - name: Verificar umbrales de complejidad y cobertura
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+        run: |
+          pip install --quiet lizard
+          bash sonar/check-metrics.sh
 
       - name: Publicar reporte de Karate
         if: always()
