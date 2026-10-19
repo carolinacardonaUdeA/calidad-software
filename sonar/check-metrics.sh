@@ -6,12 +6,18 @@ MAX_COMPLEXITY="${MAX_COMPLEXITY:-250}"
 MAX_COGNITIVE="${MAX_COGNITIVE:-120}"
 MIN_COVERAGE="${MIN_COVERAGE:-80}"
 MAX_METHOD_CCN="${MAX_METHOD_CCN:-10}"
+SONAR_BRANCH="${SONAR_BRANCH:-}"
+SONAR_PULL_REQUEST="${SONAR_PULL_REQUEST:-}"
+STRICT="${STRICT:-1}"
 API="https://sonarcloud.io/api"
 fail=0
 
-resp=$(curl -sS -u "${SONAR_TOKEN}:" --get "${API}/measures/component" \
-  --data-urlencode "component=${PROJECT}" \
+args=(--get "${API}/measures/component"
+  --data-urlencode "component=${PROJECT}"
   --data-urlencode "metricKeys=complexity,cognitive_complexity,coverage,ncloc")
+[[ -n "$SONAR_BRANCH" ]] && args+=(--data-urlencode "branch=${SONAR_BRANCH}")
+[[ -n "$SONAR_PULL_REQUEST" ]] && args+=(--data-urlencode "pullRequest=${SONAR_PULL_REQUEST}")
+resp=$(curl -sS -u "${SONAR_TOKEN}:" "${args[@]}")
 if echo "$resp" | jq -e '.errors' >/dev/null 2>&1; then
   echo "No se pudieron leer las metricas: $(echo "$resp" | jq -r '.errors[0].msg')"; exit 1
 fi
@@ -19,7 +25,11 @@ measure() { echo "$resp" | jq -r --arg m "$1" '.component.measures[] | select(.m
 
 check() { # check NOMBRE VALOR OPERADOR LIMITE
   local name="$1" value="$2" op="$3" limit="$4"
-  if [[ -z "$value" ]]; then echo "  [aviso] ${name}: sin dato todavia"; return; fi
+  if [[ -z "$value" ]]; then
+    if [[ "$STRICT" == "1" ]]; then echo "  [FALLA] ${name}: sin dato en SonarCloud (revisa rama/analisis)"; fail=1
+    else echo "  [aviso] ${name}: sin dato todavia"; fi
+    return
+  fi
   if awk -v v="$value" -v l="$limit" -v op="$op" 'BEGIN { exit !((op=="<=" && v<=l) || (op==">=" && v>=l)) }'; then
     echo "  [ok]    ${name}: ${value} (${op} ${limit})"
   else
@@ -27,7 +37,7 @@ check() { # check NOMBRE VALOR OPERADOR LIMITE
   fi
 }
 
-echo "== Metricas de SonarCloud para ${PROJECT} (lineas de codigo: $(measure ncloc))"
+echo "== Metricas de SonarCloud para ${PROJECT}${SONAR_BRANCH:+ (rama ${SONAR_BRANCH})}${SONAR_PULL_REQUEST:+ (PR ${SONAR_PULL_REQUEST})} (lineas de codigo: $(measure ncloc))"
 check "Complejidad ciclomatica total" "$(measure complexity)" "<=" "$MAX_COMPLEXITY"
 check "Complejidad cognitiva total"   "$(measure cognitive_complexity)" "<=" "$MAX_COGNITIVE"
 check "Cobertura (%)"                 "$(measure coverage)" ">=" "$MIN_COVERAGE"

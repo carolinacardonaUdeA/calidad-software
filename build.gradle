@@ -59,6 +59,33 @@ dependencies {
     acceptanceTestImplementation platform('org.junit:junit-bom:5.11.4')
     acceptanceTestImplementation 'org.junit.jupiter:junit-jupiter'
     acceptanceTestRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    acceptanceTestImplementation platform('io.netty:netty-bom:4.1.139.Final')
+    acceptanceTestImplementation platform('com.fasterxml.jackson:jackson-bom:2.22.4')
+    acceptanceTestImplementation platform('io.micrometer:micrometer-bom:1.17.1')
+
+    constraints {
+        // Thymeleaf 3.1.2 -> 3.1.5: CVE-2026-40477 / 40478 / 41901 (inyeccion de expresiones, CVSS 9.1)
+        acceptanceTestImplementation('org.thymeleaf:thymeleaf:3.1.5.RELEASE') {
+            because 'CVE-2026-40477, CVE-2026-40478, CVE-2026-41901'
+        }
+        // Logback 1.5.4 -> 1.6.5: CVE-2024-12798/12801, CVE-2025-11226, CVE-2026-1225/9828/10532/104721
+        acceptanceTestImplementation('ch.qos.logback:logback-classic:1.6.5') {
+            because 'CVE-2026-104721 (path traversal) solo se corrige en 1.6.5'
+        }
+        acceptanceTestImplementation('ch.qos.logback:logback-core:1.6.5') {
+            because 'CVE-2024-12798, CVE-2024-12801, CVE-2025-11226, CVE-2026-1225, CVE-2026-9828, CVE-2026-10532'
+        }
+        // json-smart 2.5.1 -> 2.5.2: CVE-2024-57699 (recursion sin limite)
+        acceptanceTestImplementation('net.minidev:json-smart:2.5.2') {
+            because 'CVE-2024-57699'
+        }
+    }
+}
+
+configurations.matching { it.name.startsWith('acceptanceTest') }.configureEach {
+    exclude group: 'org.hdrhistogram', module: 'HdrHistogram'
+    exclude group: 'org.latencyutils', module: 'LatencyUtils'
 }
 
 tasks.register('acceptanceTest', Test) {

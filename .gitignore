@@ -21,4 +21,4 @@ out/
 __pycache__/
 *.pyc
 
-*docs/
+docs/

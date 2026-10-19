@@ -29,12 +29,15 @@ jobs:
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
         run: ./gradlew test acceptanceTest jacocoTestReport sonar --info
 
-      # Respaldo del Quality Gate propio (el plan gratuito no deja asignarlo al proyecto):
+      # Respaldo del Quality Gate propio (el plan gratuito no deja asignarlo al proyecto; en push la falta de datos cuenta como fallo):
       # topes de complejidad total y cobertura leidos de SonarCloud + complejidad por metodo con lizard.
       - name: Verificar umbrales de complejidad y cobertura
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
+          SONAR_BRANCH: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          SONAR_PULL_REQUEST: ${{ github.event_name == 'pull_request' && github.event.number || '' }}
+          STRICT: ${{ github.event_name == 'push' && '1' || '0' }}
         run: |
           pip install --quiet lizard
           bash sonar/check-metrics.sh
