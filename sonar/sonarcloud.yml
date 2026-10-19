@@ -8,6 +8,9 @@ on:
     types: [ opened, synchronize, reopened ]
 
 env:
+  # Rama PRINCIPAL del proyecto en SonarCloud: "main" (igual que en GitHub). Los analisis de push se publican en
+  # ella, de modo que SonarCloud muestra el codigo total ("Overall Code": cobertura, complejidad, duplicacion) y
+  # evalua todas las condiciones del Quality Gate.
   SONAR_MAIN_BRANCH: ${{ vars.SONAR_MAIN_BRANCH || 'main' }}
 
 jobs:
