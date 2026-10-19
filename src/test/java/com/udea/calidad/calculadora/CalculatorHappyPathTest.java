@@ -71,7 +71,7 @@ class CalculatorHappyPathTest {
         double expected = 6.0d;
 
         // Act
-        double actual = calculator.execute("+", left, right);
+        double actual = calculator.execute("-", left, right);
 
         // Assert
         assertEquals(expected, actual, DELTA);
