@@ -127,7 +127,7 @@ jacocoTestCoverageVerification {
 // ---------------------------------------------------------------------------
 // SonarCloud
 //   Variables de entorno:  SONAR_TOKEN (obligatoria), SONAR_ORGANIZATION, SONAR_PROJECT_KEY
-//   Ejecutar: ./gradlew clean test acceptanceTest jacocoTestReport sonar
+//   Ejecutar: ./gradlew test acceptanceTest jacocoTestReport sonar   (sin "clean" en la misma linea: el plugin 7.0.0.6105 falla en :sonarResolver, SCANGRADLE-295)
 // ---------------------------------------------------------------------------
 sonar {
     properties {
