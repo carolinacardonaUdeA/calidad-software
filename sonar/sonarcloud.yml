@@ -7,6 +7,9 @@ on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 
+env:
+  SONAR_MAIN_BRANCH: ${{ vars.SONAR_MAIN_BRANCH || 'main' }}
+
 jobs:
   quality:
     runs-on: ubuntu-latest
@@ -27,7 +30,9 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_ORGANIZATION: ${{ vars.SONAR_ORGANIZATION }}
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-        run: ./gradlew test acceptanceTest jacocoTestReport sonar --info
+          # en push (rama main de GitHub) el analisis se publica en la rama principal de SonarCloud
+          SONAR_BRANCH_ARG: ${{ github.event_name == 'push' && format('-Dsonar.branch.name={0}', env.SONAR_MAIN_BRANCH) || '' }}
+        run: ./gradlew test acceptanceTest jacocoTestReport sonar --info $SONAR_BRANCH_ARG
 
       # Respaldo del Quality Gate propio (el plan gratuito no deja asignarlo al proyecto; en push la falta de datos cuenta como fallo):
       # topes de complejidad total y cobertura leidos de SonarCloud + complejidad por metodo con lizard.
@@ -35,7 +40,7 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           SONAR_PROJECT_KEY: ${{ vars.SONAR_PROJECT_KEY }}
-          SONAR_BRANCH: ${{ github.event_name == 'push' && github.ref_name || '' }}
+          SONAR_BRANCH: ${{ github.event_name == 'push' && env.SONAR_MAIN_BRANCH || '' }}
           SONAR_PULL_REQUEST: ${{ github.event_name == 'pull_request' && github.event.number || '' }}
           STRICT: ${{ github.event_name == 'push' && '1' || '0' }}
         run: |
