@@ -18,7 +18,7 @@ public class CalculationHistory {
 
     private final Deque<HistoryEntry> entries = new ArrayDeque<>();
 
-    public synchronized void record(String symbol, Double left, Double right, double result) {
+    public synchronized void addEntry(String symbol, Double left, Double right, double result) {
         if (entries.size() >= MAX_ENTRIES) {
             entries.pollFirst();
         }

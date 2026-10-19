@@ -34,31 +34,26 @@ public final class Main {
         System.out.println("=== Calculadora CLI | Ingenieria de Calidad - UdeA ===");
         printHelp();
 
-        while (true) {
+        boolean running = true;
+        while (running) {
             System.out.print("> ");
-            if (!scanner.hasNextLine()) {
-                break;
-            }
-            String line = scanner.nextLine().trim();
-            if (line.isEmpty()) {
-                continue;
-            }
-            String command = line.toLowerCase();
-            if (command.equals("q") || command.equals("salir")) {
-                break;
-            }
-            if (command.equals("?") || command.equals("ayuda")) {
-                printHelp();
-                continue;
-            }
-            if (command.equals("h") || command.equals("historial")) {
-                printHistory(calculator.getHistory());
-                continue;
-            }
-
-            executeLine(calculator, line);
+            running = scanner.hasNextLine() && handleLine(calculator, scanner.nextLine());
         }
         System.out.println("Hasta luego.");
+    }
+
+    /** Procesa una linea escrita por el usuario. @return false si pidio salir. */
+    private static boolean handleLine(Calculator calculator, String rawLine) {
+        String line = rawLine.trim();
+        boolean keepRunning = true;
+        switch (line.toLowerCase()) {
+            case "" -> { /* linea vacia: se ignora */ }
+            case "q", "salir" -> keepRunning = false;
+            case "?", "ayuda" -> printHelp();
+            case "h", "historial" -> printHistory(calculator.getHistory());
+            default -> executeLine(calculator, line);
+        }
+        return keepRunning;
     }
 
     private static void executeLine(Calculator calculator, String line) {
@@ -75,9 +70,7 @@ public final class Main {
                 return;
             }
             System.out.println("= " + result);
-        } catch (DivisionByZeroException | NegativeSquareRootException e) {
-            System.out.println("[ERROR] " + e.getMessage());
-        } catch (UnsupportedOperatorException e) {
+        } catch (DivisionByZeroException | NegativeSquareRootException | UnsupportedOperatorException e) {
             System.out.println("[ERROR] " + e.getMessage());
         } catch (NumberFormatException e) {
             System.out.println("[ERROR] Numero invalido: " + e.getMessage());

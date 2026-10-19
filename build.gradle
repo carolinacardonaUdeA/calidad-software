@@ -168,6 +168,10 @@ sonar {
         // Misma politica de cobertura que JaCoCo: adaptadores de E/S sin logica de negocio
         property 'sonar.coverage.exclusions', '**/Main.java,**/ui/CalculatorFrame.java,pruebas-aceptacion/**'
         property 'sonar.coverage.jacoco.xmlReportPaths', 'build/reports/jacoco/test/jacocoTestReport.xml'
+        // Main.java es el adaptador de consola: escribir por System.out es su funcion (regla java:S106 no aplica)
+        property 'sonar.issue.ignore.multicriteria', 'e1'
+        property 'sonar.issue.ignore.multicriteria.e1.ruleKey', 'java:S106'
+        property 'sonar.issue.ignore.multicriteria.e1.resourceKey', '**/Main.java'
         // El build falla si el Quality Gate no se cumple (util en CI)
         property 'sonar.qualitygate.wait', 'true'
     }

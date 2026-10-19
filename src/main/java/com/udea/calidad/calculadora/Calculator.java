@@ -7,7 +7,6 @@ import com.udea.calidad.calculadora.operation.Addition;
 import com.udea.calidad.calculadora.operation.BinaryOperation;
 import com.udea.calidad.calculadora.operation.Division;
 import com.udea.calidad.calculadora.operation.Multiplication;
-import com.udea.calidad.calculadora.operation.Operation;
 import com.udea.calidad.calculadora.operation.Power;
 import com.udea.calidad.calculadora.operation.SquareRoot;
 import com.udea.calidad.calculadora.operation.Subtraction;
@@ -64,7 +63,7 @@ public class Calculator {
     public double execute(String symbol, double left, double right) {
         BinaryOperation operation = findBinary(symbol);
         double result = operation.apply(left, right);
-        history.record(symbol, left, right, result);
+        history.addEntry(symbol, left, right, result);
         return result;
     }
 
@@ -74,7 +73,7 @@ public class Calculator {
             throw new UnsupportedOperatorException(symbol);
         }
         double result = operation.apply(operand);
-        history.record(symbol, operand, null, result);
+        history.addEntry(symbol, operand, null, result);
         return result;
     }
 

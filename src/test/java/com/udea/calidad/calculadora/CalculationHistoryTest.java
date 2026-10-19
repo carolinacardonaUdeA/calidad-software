@@ -29,9 +29,9 @@ class CalculationHistoryTest {
     @DisplayName("Registra las operaciones en orden de insercion")
     void registraEnOrdenDeInsercion() {
         // Arrange
-        history.record("+", 1.0d, 2.0d, 3.0d);
-        history.record("*", 3.0d, 4.0d, 12.0d);
-        history.record("/", 12.0d, 2.0d, 6.0d);
+        history.addEntry("+", 1.0d, 2.0d, 3.0d);
+        history.addEntry("*", 3.0d, 4.0d, 12.0d);
+        history.addEntry("/", 12.0d, 2.0d, 6.0d);
 
         // Act
         List<HistoryEntry> entries = history.getEntries();
@@ -47,12 +47,13 @@ class CalculationHistoryTest {
     @DisplayName("La lista entregada es inmutable (protege el estado interno)")
     void listaEntregadaEsInmutable() {
         // Arrange
-        history.record("+", 1.0d, 1.0d, 2.0d);
+        history.addEntry("+", 1.0d, 1.0d, 2.0d);
         List<HistoryEntry> entries = history.getEntries();
 
+        HistoryEntry extra = new HistoryEntry("-", 5.0d, 5.0d, 0.0d, null);
+
         // Act + Assert: modificar la copia no debe ser posible
-        assertThrows(UnsupportedOperationException.class,
-                () -> entries.add(new HistoryEntry("-", 5.0d, 5.0d, 0.0d, null)));
+        assertThrows(UnsupportedOperationException.class, () -> entries.add(extra));
     }
 
     @Test
@@ -63,7 +64,7 @@ class CalculationHistoryTest {
 
         // Act: registrar mas operaciones que el limite
         for (int i = 0; i < 150; i++) {
-            history.record("+", (double) i, (double) i, i + i);
+            history.addEntry("+", (double) i, (double) i, i + i);
         }
 
         // Assert: conserva exactamente el tope y descarta los mas antiguos
@@ -76,7 +77,7 @@ class CalculationHistoryTest {
     @Test
     @DisplayName("clear() vacia el historial completamente")
     void clearVaciaElHistorial() {
-        history.record("/", 8.0d, 2.0d, 4.0d);
+        history.addEntry("/", 8.0d, 2.0d, 4.0d);
         history.clear();
         assertEquals(0, history.size());
     }

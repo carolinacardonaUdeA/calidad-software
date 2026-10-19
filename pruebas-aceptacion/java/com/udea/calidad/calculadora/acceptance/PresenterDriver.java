@@ -13,7 +13,7 @@ import java.util.List;
  *
  * <p>Teclas validas (separadas por espacio): digitos (puede ir varios juntos,
  * p. ej. {@code 12}), {@code .}, {@code + - * / ^}, {@code =}, {@code sqrt},
- * {@code back} (borrar) y {@code C} (limpiar todo).</p>
+ * {@code back} (borrar) y {@code C} (limpiar por completo).</p>
  */
 public class PresenterDriver {
 
